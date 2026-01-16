@@ -6,6 +6,135 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
+
+//SHOW  – GET /api/tasks/{id}
+
+
+it('létezik a show metódus a TaskControllerben', function () {
+    expect(method_exists(TaskController::class, 'show'))->toBeTrue();
+});
+
+it('a show végpont létező task esetén 200-as státusszal tér vissza', function () {
+    $task = Task::create([
+        'title' => 'Teszt task',
+        'description' => 'Teszt leírás',
+    ]);
+
+    $response = $this->getJson("/api/tasks/{$task->id}");
+
+    $response->assertStatus(200);
+});
+
+it('a show végpont a megfelelő task adatait adja vissza', function () {
+    $task = Task::create([
+        'title' => 'Egyedi task',
+        'description' => 'Egyedi leírás',
+    ]);
+
+    $response = $this->getJson("/api/tasks/{$task->id}");
+
+    $response->assertJsonPath('data.id', $task->id)
+             ->assertJsonPath('data.title', 'Egyedi task');
+});
+
+it('a show végpont nem létező task esetén 404-es hibát ad', function () {
+    $response = $this->getJson('/api/tasks/9999');
+
+    $response->assertStatus(404);
+});
+
+
+//UPDATE – PATCH /api/tasks/{id}
+
+it('létezik az update metódus a TaskControllerben', function () {
+    expect(method_exists(TaskController::class, 'update'))->toBeTrue();
+});
+
+it('az update végpont érvényes adatokkal 200-as státusszal frissít', function () {
+    $task = Task::create([
+        'title' => 'Régi cím',
+        'description' => 'Régi leírás',
+    ]);
+
+    $response = $this->patchJson("/api/tasks/{$task->id}", [
+        'title' => 'Új cím',
+    ]);
+
+    $response->assertStatus(200)
+             ->assertJsonPath('data.title', 'Új cím');
+
+    $this->assertDatabaseHas('tasks', [
+        'id' => $task->id,
+        'title' => 'Új cím',
+    ]);
+});
+
+it('az update végpont nem létező task esetén 404-es hibát ad', function () {
+    $response = $this->patchJson('/api/tasks/9999', [
+        'title' => 'Nem létező',
+    ]);
+
+    $response->assertStatus(404);
+});
+
+it('az update végpont érvénytelen adatok esetén 422-es hibát ad', function () {
+    $task = Task::create([
+        'title' => 'Eredeti cím',
+        'description' => 'Leírás',
+    ]);
+
+    $response = $this->patchJson("/api/tasks/{$task->id}", [
+        'title' => '',
+    ]);
+
+    $response->assertStatus(422)
+             ->assertJsonValidationErrors(['title']);
+});
+
+
+//DESTROY – DELETE /api/tasks/{id}
+
+
+it('létezik a destroy metódus a TaskControllerben', function () {
+    expect(method_exists(TaskController::class, 'destroy'))->toBeTrue();
+});
+
+it('a destroy végpont 200-as státusszal törli a taskot', function () {
+    $task = Task::create([
+        'title' => 'Törlendő task',
+        'description' => 'Leírás',
+    ]);
+
+    $response = $this->deleteJson("/api/tasks/{$task->id}");
+
+    $response->assertStatus(200);
+
+    $this->assertDatabaseMissing('tasks', [
+        'id' => $task->id,
+    ]);
+});
+
+it('a destroy végpont nem létező task esetén 404-es hibát ad', function () {
+    $response = $this->deleteJson('/api/tasks/9999');
+
+    $response->assertStatus(404);
+});
+
+it('a destroy végpont JSON válasza tartalmaz visszajelző üzenetet', function () {
+    $task = Task::create([
+        'title' => 'Üzenet teszt',
+        'description' => 'Leírás',
+    ]);
+
+    $response = $this->deleteJson("/api/tasks/{$task->id}");
+
+    $response->assertJsonStructure([
+        'message'
+    ]);
+});
+
+
+
 //index metódus tesztjei
 
 it('létezik az index metódus a TaskControllerben', function () {
@@ -122,3 +251,5 @@ it('a store végpont JSON válasza tartalmazza az összes elvárt mezőt', funct
         ]
     ]);
 });
+
+

@@ -49,8 +49,10 @@ class TaskController extends Controller
     //rekord törlése
     public function destroy(Task $task)
     {
-
         $task->delete();
-        return response()->noContent();
+
+        return response()->json([
+            'message' => 'Task sikeresen törölve'
+        ], 200);
     }
 }
